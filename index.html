@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UHI Detector - Urban Heat Island Analysis Platform</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      min-height: 100vh;
+      color: #e4e4e7;
+    }
+
+    /* Header */
+    .header {
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+      padding: 16px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-content {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #f97316, #ef4444);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .logo h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #f97316, #ef4444);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .uvp-badge {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: #c4b5fd;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .uvp-badge::before {
+      content: "✨";
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      padding: 8px 16px;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 8px;
+      color: #a5b4fc;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: rgba(99, 102, 241, 0.5);
+    }
+
+    .nav-btn.active {
+      background: rgba(99, 102, 241, 0.3);
+      border-color: #6366f1;
+      color: white;
+    }
+
+    /* Main Layout */
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 300px 1fr 340px;
+      gap: 20px;
+      min-height: calc(100vh - 120px);
+    }
+
+    @media (max-width: 1200px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Sidebar */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Cards */
+    .card {
+      background: rgba(30, 27, 75, 0.6);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: 16px;
+      padding: 16px;
+      backdrop-filter: blur(10px);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .card h3 {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #a5b4fc;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .card-badge {
+      font-size: 0.65rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+    }
+
+    /* Map */
+    .map-container {
+      background: rgba(30, 27, 75, 0.6);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .map-toolbar {
+      display: flex;
+      gap: 8px;
+      padding: 12px;
+      background: rgba(15, 23, 42, 0.8);
+      flex-wrap: wrap;
+    }
+
+    .layer-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 6px;
+      font-size: 0.8rem;
+      color: #a5b4fc;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .layer-toggle:hover {
+      background: rgba(99, 102, 241, 0.2);
+    }
+
+    .layer-toggle.active {
+      background: rgba(99, 102, 241, 0.3);
+      border-color: #6366f1;
+      color: white;
+    }
+
+    .layer-toggle input {
+      accent-color: #6366f1;
+    }
+
+    #map {
+      flex: 1;
+      min-height: 500px;
+    }
+
+    /* Form Elements */
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #c4b5fd;
+      margin-bottom: 4px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 8px;
+      color: #e4e4e7;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+
+    /* Coordinate Display */
+    .coord-display {
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 8px;
+      padding: 10px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 0.75rem;
+      color: #c4b5fd;
+      text-align: center;
+    }
+
+    .coord-display.empty {
+      color: #6b7280;
+      font-style: italic;
+      font-family: inherit;
+    }
+
+    /* Buttons */
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      color: white;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+    }
+
+    .btn-outline:hover:not(:disabled) {
+      border-color: #6366f1;
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    /* Loading Spinner */
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Heat Stress Indicator */
+    .heat-stress-card {
+      text-align: center;
+      padding: 16px;
+    }
+
+    .heat-stress-level {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .heat-stress-temp {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .heat-stress-desc {
+      font-size: 0.8rem;
+      color: #a5b4fc;
+    }
+
+    /* Heat Stress Summary */
+    .stress-summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .stress-item {
+      text-align: center;
+      padding: 8px;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.6);
+    }
+
+    .stress-item .count {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .stress-item .label {
+      font-size: 0.65rem;
+      color: #a5b4fc;
+      text-transform: uppercase;
+    }
+
+    /* Recommendations Panel */
+    .recommendations-panel {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .recommendation-item {
+      display: flex;
+      gap: 12px;
+      padding: 12px;
+      background: rgba(15, 23, 42, 0.4);
+      border-radius: 10px;
+      margin-bottom: 8px;
+      border-left: 3px solid #6366f1;
+    }
+
+    .recommendation-item.critical {
+      border-left-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .recommendation-item.high {
+      border-left-color: #f97316;
+      background: rgba(249, 115, 22, 0.1);
+    }
+
+    .recommendation-icon {
+      font-size: 1.5rem;
+    }
+
+    .recommendation-content h4 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #e4e4e7;
+      margin-bottom: 4px;
+    }
+
+    .recommendation-content p {
+      font-size: 0.75rem;
+      color: #a5b4fc;
+      line-height: 1.4;
+    }
+
+    .priority-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .priority-critical { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+    .priority-high { background: rgba(249, 115, 22, 0.2); color: #fdba74; }
+    .priority-moderate { background: rgba(234, 179, 8, 0.2); color: #fde047; }
+    .priority-low { background: rgba(34, 197, 94, 0.2); color: #86efac; }
+
+    /* UHI Hotspots List */
+    .hotspot-list {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .hotspot-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: rgba(239, 68, 68, 0.1);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      border-left: 3px solid #ef4444;
+    }
+
+    .hotspot-temp {
+      font-weight: 700;
+      color: #fca5a5;
+    }
+
+    .hotspot-deviation {
+      font-size: 0.75rem;
+      color: #f97316;
+    }
+
+    /* Legend */
+    .legend-container {
+      padding: 12px;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 10px;
+    }
+
+    .legend-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #a5b4fc;
+      margin-bottom: 8px;
+    }
+
+    .legend-gradient {
+      height: 16px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+    }
+
+    .legend-gradient.heat {
+      background: linear-gradient(90deg, #3b82f6, #22c55e, #eab308, #f97316, #ef4444);
+    }
+
+    .legend-gradient.ndvi {
+      background: linear-gradient(90deg, #a16207, #ca8a04, #84cc16, #22c55e, #15803d);
+    }
+
+    .legend-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      color: #6b7280;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 10px;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 8px;
+    }
+
+    .stat-value {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #c4b5fd;
+    }
+
+    .stat-label {
+      font-size: 0.65rem;
+      color: #6b7280;
+      text-transform: uppercase;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal {
+      background: #1e1b4b;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 20px;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      width: 100%;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .modal-header h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #c4b5fd;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: #6b7280;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .modal-close:hover {
+      color: #ef4444;
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .modal-section {
+      margin-bottom: 24px;
+    }
+
+    .modal-section h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #a5b4fc;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-section p {
+      font-size: 0.9rem;
+      color: #d1d5db;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+
+    .modal-section ul {
+      padding-left: 20px;
+      color: #d1d5db;
+      font-size: 0.9rem;
+      line-height: 1.8;
+    }
+
+    .data-source {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: rgba(99, 102, 241, 0.1);
+      border-radius: 10px;
+      margin-bottom: 8px;
+    }
+
+    .data-source-icon {
+      width: 40px;
+      height: 40px;
+      background: rgba(99, 102, 241, 0.2);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+    }
+
+    .data-source-info h4 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #e4e4e7;
+    }
+
+    .data-source-info p {
+      font-size: 0.75rem;
+      color: #a5b4fc;
+      margin: 0;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success {
+      background: #22c55e;
+      color: white;
+    }
+
+    .toast.error {
+      background: #ef4444;
+      color: white;
+    }
+
+    .toast.info {
+      background: #6366f1;
+      color: white;
+    }
+
+    /* Vegetation Status */
+    .veg-status {
+      text-align: center;
+      padding: 12px;
+    }
+
+    .veg-level {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .veg-desc {
+      font-size: 0.75rem;
+      color: #a5b4fc;
+    }
+
+    /* Correlation Display */
+    .correlation-display {
+      text-align: center;
+      padding: 16px;
+    }
+
+    .correlation-value {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .correlation-label {
+      font-size: 0.8rem;
+      color: #a5b4fc;
+      margin-bottom: 12px;
+    }
+
+    .correlation-interpretation {
+      font-size: 0.8rem;
+      color: #d1d5db;
+      padding: 12px;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 8px;
+      line-height: 1.5;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 24px;
+      color: #6b7280;
+      font-size: 0.85rem;
+    }
+
+    .empty-state-icon {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      opacity: 0.5;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.4);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.4);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.6);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <div class="logo">
+        <div class="logo-icon">🌡️</div>
+        <h1>UHI Detector</h1>
+      </div>
+      <div class="uvp-badge">
+        Low-cost, scalable thermal monitoring for evidence-based urban planning
+      </div>
+      <div class="nav-buttons">
+        <button class="nav-btn active" onclick="showPanel('analysis')">Analysis</button>
+        <button class="nav-btn" onclick="openMethodology()">Methodology</button>
+        <button class="nav-btn" onclick="openDocumentation()">Documentation</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="main-grid">
+      
+      <!-- Left Sidebar - Controls -->
+      <div class="sidebar">
+        <div class="card">
+          <div class="card-header">
+            <h3>📍 Location</h3>
+          </div>
+          <div id="coords" class="coord-display empty">Click on map to select</div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>📅 Date Range</h3>
+          </div>
+          <div class="form-group">
+            <label for="start">Start Date</label>
+            <input type="date" id="start" />
+          </div>
+          <div class="form-group">
+            <label for="end">End Date</label>
+            <input type="date" id="end" />
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>⚡ Actions</h3>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="getLST()" id="lstBtn">
+              <span id="lstBtnText">Analyze Point</span>
+            </button>
+            <button class="btn btn-danger" onclick="getHeatmap()" id="heatmapBtn">
+              <span id="heatmapBtnText">Generate UHI Map</span>
+            </button>
+            <button class="btn btn-success" onclick="getCorrelation()" id="corrBtn">
+              <span id="corrBtnText">Correlation Analysis</span>
+            </button>
+            <button class="btn btn-outline" onclick="clearMap()">Clear All</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>📊 Statistics</h3>
+          </div>
+          <div id="statsPanel">
+            <div class="empty-state">
+              <div class="empty-state-icon">📈</div>
+              Run analysis to see statistics
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map Area -->
+      <div class="map-container">
+        <div class="map-toolbar">
+          <label class="layer-toggle">
+            <input type="checkbox" id="heatLayerToggle" checked onchange="toggleHeatLayer()" />
+            <span>🌡️ Temperature</span>
+          </label>
+          <label class="layer-toggle">
+            <input type="checkbox" id="ndviLayerToggle" onchange="toggleNdviLayer()" />
+            <span>🌿 Vegetation (NDVI)</span>
+          </label>
+          <label class="layer-toggle">
+            <input type="checkbox" id="hotspotToggle" checked onchange="toggleHotspots()" />
+            <span>🔥 UHI Hotspots</span>
+          </label>
+        </div>
+        <div id="map"></div>
+      </div>
+
+      <!-- Right Sidebar - Results -->
+      <div class="sidebar">
+        <!-- Heat Stress Card -->
+        <div class="card">
+          <div class="card-header">
+            <h3>🌡️ Heat Stress Level</h3>
+            <span class="card-badge">Quality of Life</span>
+          </div>
+          <div id="heatStressPanel">
+            <div class="empty-state">
+              <div class="empty-state-icon">🌡️</div>
+              Analyze area to assess heat stress
+            </div>
+          </div>
+        </div>
+
+        <!-- UHI Hotspots -->
+        <div class="card" id="hotspotCard" style="display: none;">
+          <div class="card-header">
+            <h3>🔥 Urban Heat Islands</h3>
+            <span class="card-badge" id="hotspotCount">0 detected</span>
+          </div>
+          <div class="hotspot-list" id="hotspotList"></div>
+        </div>
+
+        <!-- Vegetation Status -->
+        <div class="card" id="vegCard" style="display: none;">
+          <div class="card-header">
+            <h3>🌿 Vegetation Analysis</h3>
+          </div>
+          <div id="vegPanel"></div>
+        </div>
+
+        <!-- Correlation -->
+        <div class="card" id="corrCard" style="display: none;">
+          <div class="card-header">
+            <h3>📊 LST-NDVI Correlation</h3>
+          </div>
+          <div id="corrPanel"></div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="card">
+          <div class="card-header">
+            <h3>🏗️ Urban Planning Recommendations</h3>
+          </div>
+          <div class="recommendations-panel" id="recommendationsPanel">
+            <div class="empty-state">
+              <div class="empty-state-icon">💡</div>
+              Recommendations will appear after analysis
+            </div>
+          </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="card">
+          <div class="card-header">
+            <h3>🗺️ Map Legend</h3>
+          </div>
+          <div class="legend-container" id="heatLegend">
+            <div class="legend-title">Land Surface Temperature</div>
+            <div class="legend-gradient heat"></div>
+            <div class="legend-labels">
+              <span>20°C</span>
+              <span>30°C</span>
+              <span>40°C</span>
+              <span>50°C</span>
+            </div>
+          </div>
+          <div class="legend-container" id="ndviLegend" style="display: none; margin-top: 12px;">
+            <div class="legend-title">Vegetation Index (NDVI)</div>
+            <div class="legend-gradient ndvi"></div>
+            <div class="legend-labels">
+              <span>Barren</span>
+              <span>Sparse</span>
+              <span>Moderate</span>
+              <span>Dense</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Methodology Modal -->
+  <div class="modal-overlay" id="methodologyModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>📚 Data Source & Methodology</h2>
+        <button class="modal-close" onclick="closeModal('methodologyModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-section">
+          <h3>🛰️ Earth Observation Data Sources</h3>
+          <div class="data-source">
+            <div class="data-source-icon">🛰️</div>
+            <div class="data-source-info">
+              <h4>Landsat 8 Collection 2 Level 2</h4>
+              <p>Primary source for Land Surface Temperature (Band 10) and spectral reflectance</p>
+            </div>
+          </div>
+          <div class="data-source">
+            <div class="data-source-icon">🌍</div>
+            <div class="data-source-info">
+              <h4>Google Earth Engine</h4>
+              <p>Cloud computing platform for geospatial analysis at planetary scale</p>
+            </div>
+          </div>
+          <p>Additional compatible data sources include MODIS, ECOSTRESS, and Sentinel-2 for multi-temporal and multi-resolution analysis.</p>
+        </div>
+
+        <div class="modal-section">
+          <h3>🌡️ Land Surface Temperature (LST) Calculation</h3>
+          <p>LST is derived from Landsat 8 Thermal Infrared Sensor (TIRS) Band 10 using the following methodology:</p>
+          <ul>
+            <li><strong>Radiometric Calibration:</strong> DN values converted to Top-of-Atmosphere radiance</li>
+            <li><strong>Atmospheric Correction:</strong> Level 2 products include atmospheric correction</li>
+            <li><strong>Temperature Conversion:</strong> Brightness temperature calculated using Planck's equation</li>
+            <li><strong>Scale Factor:</strong> ST_B10 × 0.00341802 + 149.0 (Kelvin), then converted to Celsius</li>
+          </ul>
+        </div>
+
+        <div class="modal-section">
+          <h3>🌿 Normalized Difference Vegetation Index (NDVI)</h3>
+          <p>NDVI quantifies vegetation health and density:</p>
+          <p><strong>Formula:</strong> NDVI = (NIR - Red) / (NIR + Red)</p>
+          <ul>
+            <li><strong>NIR:</strong> Landsat 8 Band 5 (Near-Infrared)</li>
+            <li><strong>Red:</strong> Landsat 8 Band 4 (Visible Red)</li>
+            <li><strong>Range:</strong> -1 to +1 (higher values indicate denser vegetation)</li>
+          </ul>
+        </div>
+
+        <div class="modal-section">
+          <h3>🏙️ Urban Heat Island (UHI) Detection</h3>
+          <p>UHI hotspots are identified using statistical analysis:</p>
+          <ul>
+            <li>Calculate mean and standard deviation of LST across the analysis area</li>
+            <li>Identify pixels exceeding 1.5 standard deviations above the mean</li>
+            <li>These statistically significant warm anomalies indicate UHI zones</li>
+            <li>Results correlate with built-up density and vegetation deficit</li>
+          </ul>
+        </div>
+
+        <div class="modal-section">
+          <h3>📊 Heat Stress Categories</h3>
+          <ul>
+            <li><strong style="color: #22c55e;">Low (&lt;30°C):</strong> Minimal heat-related health risks</li>
+            <li><strong style="color: #eab308;">Moderate (30-38°C):</strong> Caution advised for prolonged outdoor activities</li>
+            <li><strong style="color: #f97316;">High (38-45°C):</strong> Heat exhaustion possible with extended exposure</li>
+            <li><strong style="color: #ef4444;">Extreme (&gt;45°C):</strong> Heat stroke risk - limit outdoor activities</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Documentation Modal -->
+  <div class="modal-overlay" id="documentationModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>📖 Dashboard Documentation</h2>
+        <button class="modal-close" onclick="closeModal('documentationModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-section">
+          <h3>🎯 Dashboard Functionalities</h3>
+          <ul>
+            <li><strong>Interactive Map:</strong> Click anywhere to select analysis location</li>
+            <li><strong>Point Analysis:</strong> Get LST, NDVI, and heat stress for a single point</li>
+            <li><strong>UHI Mapping:</strong> Generate heat maps with automatic hotspot detection</li>
+            <li><strong>Vegetation Layer:</strong> Toggle NDVI visualization to understand green cover</li>
+            <li><strong>Correlation Analysis:</strong> Quantify the relationship between temperature and vegetation</li>
+            <li><strong>Automated Recommendations:</strong> AI-driven urban planning suggestions</li>
+          </ul>
+        </div>
+
+        <div class="modal-section">
+          <h3>🔧 How to Use</h3>
+          <ol style="padding-left: 20px; color: #d1d5db; font-size: 0.9rem; line-height: 2;">
+            <li>Click on the map to select a location of interest</li>
+            <li>Set the date range for satellite imagery analysis</li>
+            <li>Click "Analyze Point" for single-point temperature analysis</li>
+            <li>Click "Generate UHI Map" for area-wide heat island detection</li>
+            <li>Toggle layers to view temperature, vegetation, or hotspot overlays</li>
+            <li>Click "Correlation Analysis" to understand temperature-vegetation relationships</li>
+            <li>Review automated recommendations for urban planning interventions</li>
+          </ol>
+        </div>
+
+        <div class="modal-section">
+          <h3>💡 Unique Value Proposition</h3>
+          <p><strong>Low-cost, scalable thermal monitoring for evidence-based urban planning.</strong></p>
+          <p>This platform democratizes access to satellite-derived environmental intelligence, enabling:</p>
+          <ul>
+            <li>Municipal governments to prioritize green infrastructure investments</li>
+            <li>Urban planners to identify heat vulnerability zones</li>
+            <li>Researchers to study urban microclimate patterns</li>
+            <li>Communities to advocate for climate-resilient development</li>
+          </ul>
+        </div>
+
+        <div class="modal-section">
+          <h3>📈 Expected Outputs</h3>
+          <ul>
+            <li><strong>Land Surface Temperature Maps:</strong> Visualize thermal patterns</li>
+            <li><strong>UHI Hotspot Identification:</strong> Locate urban heat islands</li>
+            <li><strong>Heat Stress Assessment:</strong> Categorize areas by health risk</li>
+            <li><strong>Vegetation Analysis:</strong> Map green cover distribution</li>
+            <li><strong>Planning Recommendations:</strong> Actionable mitigation strategies</li>
+            <li><strong>Statistical Reports:</strong> Temperature and NDVI statistics</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+  <script>
+    // State
+    let lat, lon;
+    let marker;
+    let heatLayer;
+    let ndviMarkers = [];
+    let hotspotMarkers = [];
+    let currentData = null;
+
+    // Initialize map
+    const map = L.map("map").setView([20, 78], 5);
+
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+      attribution: '© OSM © CARTO',
+      maxZoom: 19
+    }).addTo(map);
+
+    // Set default dates
+    const today = new Date();
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    document.getElementById("end").value = today.toISOString().split("T")[0];
+    document.getElementById("start").value = sixMonthsAgo.toISOString().split("T")[0];
+
+    // Map click handler
+    map.on("click", function (e) {
+      lat = e.latlng.lat;
+      lon = e.latlng.lng;
+
+      if (marker) map.removeLayer(marker);
+      
+      marker = L.circleMarker([lat, lon], {
+        radius: 10,
+        fillColor: "#6366f1",
+        color: "#4338ca",
+        weight: 3,
+        opacity: 1,
+        fillOpacity: 0.8
+      }).addTo(map);
+
+      document.getElementById("coords").textContent = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+      document.getElementById("coords").classList.remove("empty");
+    });
+
+    // Toast notification
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+      setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+
+    // Validate inputs
+    function validateInputs() {
+      if (!lat || !lon) {
+        showToast("Please select a location on the map", "error");
+        return false;
+      }
+      if (!document.getElementById("start").value || !document.getElementById("end").value) {
+        showToast("Please select start and end dates", "error");
+        return false;
+      }
+      return true;
+    }
+
+    // Modal controls
+    function openMethodology() {
+      document.getElementById("methodologyModal").classList.add("show");
+    }
+
+    function openDocumentation() {
+      document.getElementById("documentationModal").classList.add("show");
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove("show");
+    }
+
+    // Close modals on outside click
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.remove('show');
+      });
+    });
+
+    // Layer toggles
+    function toggleHeatLayer() {
+      if (heatLayer) {
+        if (document.getElementById("heatLayerToggle").checked) {
+          heatLayer.addTo(map);
+        } else {
+          map.removeLayer(heatLayer);
+        }
+      }
+      document.getElementById("heatLegend").style.display = 
+        document.getElementById("heatLayerToggle").checked ? "block" : "none";
+    }
+
+    function toggleNdviLayer() {
+      const show = document.getElementById("ndviLayerToggle").checked;
+      ndviMarkers.forEach(m => show ? m.addTo(map) : map.removeLayer(m));
+      document.getElementById("ndviLegend").style.display = show ? "block" : "none";
+      
+      if (show && ndviMarkers.length === 0 && currentData) {
+        getNdviLayer();
+      }
+    }
+
+    function toggleHotspots() {
+      const show = document.getElementById("hotspotToggle").checked;
+      hotspotMarkers.forEach(m => show ? m.addTo(map) : map.removeLayer(m));
+    }
+
+    // Get single point LST
+    function getLST() {
+      if (!validateInputs()) return;
+
+      const btn = document.getElementById("lstBtn");
+      const btnText = document.getElementById("lstBtnText");
+      btn.disabled = true;
+      btnText.innerHTML = '<span class="loading"></span> Analyzing...';
+
+      fetch("/lst", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat, lon,
+          start: document.getElementById("start").value,
+          end: document.getElementById("end").value
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          btn.disabled = false;
+          btnText.textContent = "Analyze Point";
+
+          if (data.error) {
+            showToast(data.error, "error");
+            return;
+          }
+
+          // Update heat stress panel
+          updateHeatStressPanel(data.lst_celsius, data.heat_stress);
+          
+          // Update recommendations
+          updateRecommendations(data.recommendations);
+          
+          // Update stats
+          document.getElementById("statsPanel").innerHTML = `
+            <div class="stats-grid">
+              <div class="stat-item">
+                <div class="stat-value">${data.lst_celsius}°C</div>
+                <div class="stat-label">Temperature</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">${data.ndvi !== null ? data.ndvi : 'N/A'}</div>
+                <div class="stat-label">NDVI</div>
+              </div>
+            </div>
+          `;
+
+          showToast(`Temperature: ${data.lst_celsius}°C - ${data.heat_stress.level} Heat Stress`, "success");
+        })
+        .catch(err => {
+          btn.disabled = false;
+          btnText.textContent = "Analyze Point";
+          showToast("Network error. Please try again.", "error");
+        });
+    }
+
+    // Generate UHI heat map
+    function getHeatmap() {
+      if (!validateInputs()) return;
+
+      const btn = document.getElementById("heatmapBtn");
+      const btnText = document.getElementById("heatmapBtnText");
+      btn.disabled = true;
+      btnText.innerHTML = '<span class="loading"></span> Generating...';
+
+      fetch("/heatmap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat, lon,
+          start: document.getElementById("start").value,
+          end: document.getElementById("end").value
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          btn.disabled = false;
+          btnText.textContent = "Generate UHI Map";
+
+          if (data.error) {
+            showToast(data.error, "error");
+            return;
+          }
+
+          currentData = data;
+
+          // Clear existing layers
+          if (heatLayer) map.removeLayer(heatLayer);
+          hotspotMarkers.forEach(m => map.removeLayer(m));
+          hotspotMarkers = [];
+
+          // Create heat layer
+          if (data.points && data.points.length > 0) {
+            heatLayer = L.heatLayer(data.points, {
+              radius: 40,
+              blur: 30,
+              maxZoom: 12,
+              max: 1.0,
+              gradient: {
+                0.0: '#3b82f6',
+                0.25: '#22c55e',
+                0.5: '#eab308',
+                0.75: '#f97316',
+                1.0: '#ef4444'
+              }
+            });
+            
+            if (document.getElementById("heatLayerToggle").checked) {
+              heatLayer.addTo(map);
+            }
+          }
+
+          // Add UHI hotspot markers
+          if (data.uhi_hotspots && data.uhi_hotspots.length > 0) {
+            data.uhi_hotspots.forEach((hotspot, i) => {
+              const m = L.marker([hotspot.lat, hotspot.lon], {
+                icon: L.divIcon({
+                  className: 'hotspot-marker',
+                  html: `<div style="
+                    background: linear-gradient(135deg, #ef4444, #dc2626);
+                    color: white;
+                    padding: 4px 8px;
+                    border-radius: 12px;
+                    font-size: 11px;
+                    font-weight: 700;
+                    white-space: nowrap;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+                  ">🔥 ${hotspot.temp}°C</div>`,
+                  iconSize: [60, 24],
+                  iconAnchor: [30, 12]
+                })
+              }).bindPopup(`
+                <strong>UHI Hotspot #${i + 1}</strong><br>
+                Temperature: ${hotspot.temp}°C<br>
+                Deviation: +${hotspot.deviation}°C above avg<br>
+                Heat Stress: ${hotspot.heat_stress.level}
+              `);
+              
+              hotspotMarkers.push(m);
+              if (document.getElementById("hotspotToggle").checked) {
+                m.addTo(map);
+              }
+            });
+
+            // Update hotspot panel
+            document.getElementById("hotspotCard").style.display = "block";
+            document.getElementById("hotspotCount").textContent = `${data.uhi_hotspots.length} detected`;
+            document.getElementById("hotspotList").innerHTML = data.uhi_hotspots.map((h, i) => `
+              <div class="hotspot-item">
+                <div>
+                  <strong>Hotspot #${i + 1}</strong>
+                  <div class="hotspot-deviation">+${h.deviation}°C above avg</div>
+                </div>
+                <div class="hotspot-temp">${h.temp}°C</div>
+              </div>
+            `).join('');
+          } else {
+            document.getElementById("hotspotCard").style.display = "none";
+          }
+
+          // Update heat stress summary
+          if (data.heat_stress_summary) {
+            const maxTemp = data.stats.max_temp;
+            const stressLevel = maxTemp >= 45 ? 'Extreme' : maxTemp >= 38 ? 'High' : maxTemp >= 30 ? 'Moderate' : 'Low';
+            const stressColor = maxTemp >= 45 ? '#ef4444' : maxTemp >= 38 ? '#f97316' : maxTemp >= 30 ? '#eab308' : '#22c55e';
+            
+            document.getElementById("heatStressPanel").innerHTML = `
+              <div class="heat-stress-card">
+                <div class="heat-stress-level" style="color: ${stressColor}">${stressLevel}</div>
+                <div class="heat-stress-temp">${data.stats.avg_temp}°C avg</div>
+                <div class="heat-stress-desc">Max: ${data.stats.max_temp}°C | Min: ${data.stats.min_temp}°C</div>
+              </div>
+              <div class="stress-summary">
+                <div class="stress-item">
+                  <div class="count" style="color: #22c55e">${data.heat_stress_summary.Low}</div>
+                  <div class="label">Low</div>
+                </div>
+                <div class="stress-item">
+                  <div class="count" style="color: #eab308">${data.heat_stress_summary.Moderate}</div>
+                  <div class="label">Moderate</div>
+                </div>
+                <div class="stress-item">
+                  <div class="count" style="color: #f97316">${data.heat_stress_summary.High}</div>
+                  <div class="label">High</div>
+                </div>
+                <div class="stress-item">
+                  <div class="count" style="color: #ef4444">${data.heat_stress_summary.Extreme}</div>
+                  <div class="label">Extreme</div>
+                </div>
+              </div>
+            `;
+          }
+
+          // Update stats
+          document.getElementById("statsPanel").innerHTML = `
+            <div class="stats-grid">
+              <div class="stat-item">
+                <div class="stat-value">${data.stats.avg_temp}°C</div>
+                <div class="stat-label">Avg Temp</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">${data.stats.max_temp}°C</div>
+                <div class="stat-label">Max Temp</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">${data.stats.count}</div>
+                <div class="stat-label">Data Points</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">${data.uhi_hotspots ? data.uhi_hotspots.length : 0}</div>
+                <div class="stat-label">UHI Zones</div>
+              </div>
+            </div>
+          `;
+
+          // Update recommendations
+          updateRecommendations(data.recommendations);
+
+          // Zoom to area
+          map.setView([lat, lon], 11);
+          
+          showToast(`UHI Map generated - ${data.uhi_hotspots?.length || 0} hotspots detected`, "success");
+        })
+        .catch(err => {
+          btn.disabled = false;
+          btnText.textContent = "Generate UHI Map";
+          showToast("Network error. Please try again.", "error");
+        });
+    }
+
+    // Get NDVI layer
+    function getNdviLayer() {
+      if (!lat || !lon) return;
+
+      fetch("/ndvi", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat, lon,
+          start: document.getElementById("start").value,
+          end: document.getElementById("end").value
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            showToast(data.error, "error");
+            return;
+          }
+
+          // Clear existing NDVI markers
+          ndviMarkers.forEach(m => map.removeLayer(m));
+          ndviMarkers = [];
+
+          // Create NDVI markers
+          data.points.forEach(point => {
+            const color = point.ndvi < 0.1 ? '#a16207' : 
+                         point.ndvi < 0.2 ? '#ca8a04' : 
+                         point.ndvi < 0.4 ? '#84cc16' : 
+                         point.ndvi < 0.6 ? '#22c55e' : '#15803d';
+            
+            const m = L.circleMarker([point.lat, point.lon], {
+              radius: 12,
+              fillColor: color,
+              color: '#064e3b',
+              weight: 1,
+              opacity: 0.8,
+              fillOpacity: 0.6
+            }).bindPopup(`NDVI: ${point.ndvi}`);
+            
+            ndviMarkers.push(m);
+            if (document.getElementById("ndviLayerToggle").checked) {
+              m.addTo(map);
+            }
+          });
+
+          // Update vegetation panel
+          document.getElementById("vegCard").style.display = "block";
+          document.getElementById("vegPanel").innerHTML = `
+            <div class="veg-status">
+              <div class="veg-level" style="color: ${data.vegetation_status.color}">${data.vegetation_status.level}</div>
+              <div class="veg-desc">${data.vegetation_status.desc}</div>
+            </div>
+            <div class="stats-grid" style="margin-top: 12px;">
+              <div class="stat-item">
+                <div class="stat-value">${data.stats.avg_ndvi}</div>
+                <div class="stat-label">Avg NDVI</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">${data.stats.max_ndvi}</div>
+                <div class="stat-label">Max NDVI</div>
+              </div>
+            </div>
+          `;
+
+          showToast(`Vegetation layer loaded - ${data.vegetation_status.level}`, "success");
+        })
+        .catch(err => {
+          showToast("Failed to load vegetation data", "error");
+        });
+    }
+
+    // Correlation analysis
+    function getCorrelation() {
+      if (!validateInputs()) return;
+
+      const btn = document.getElementById("corrBtn");
+      const btnText = document.getElementById("corrBtnText");
+      btn.disabled = true;
+      btnText.innerHTML = '<span class="loading"></span> Analyzing...';
+
+      fetch("/correlation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat, lon,
+          start: document.getElementById("start").value,
+          end: document.getElementById("end").value
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          btn.disabled = false;
+          btnText.textContent = "Correlation Analysis";
+
+          if (data.error) {
+            showToast(data.error, "error");
+            return;
+          }
+
+          // Determine correlation color
+          const corrColor = data.correlation < -0.4 ? '#22c55e' : 
+                           data.correlation < -0.2 ? '#84cc16' : 
+                           data.correlation < 0.2 ? '#eab308' : '#ef4444';
+
+          // Update correlation panel
+          document.getElementById("corrCard").style.display = "block";
+          document.getElementById("corrPanel").innerHTML = `
+            <div class="correlation-display">
+              <div class="correlation-value" style="color: ${corrColor}">${data.correlation}</div>
+              <div class="correlation-label">Pearson Correlation Coefficient</div>
+              <div class="correlation-interpretation">${data.interpretation}</div>
+            </div>
+            <div class="stats-grid" style="margin-top: 12px;">
+              <div class="stat-item">
+                <div class="stat-value">${data.stats.mean_lst}°C</div>
+                <div class="stat-label">Mean LST</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">${data.stats.mean_ndvi}</div>
+                <div class="stat-label">Mean NDVI</div>
+              </div>
+            </div>
+          `;
+
+          // Also load NDVI layer
+          if (ndviMarkers.length === 0) {
+            document.getElementById("ndviLayerToggle").checked = true;
+            getNdviLayer();
+          }
+
+          showToast(`Correlation: ${data.correlation} - ${data.correlation < -0.4 ? 'Strong inverse relationship' : 'Weak relationship'}`, "success");
+        })
+        .catch(err => {
+          btn.disabled = false;
+          btnText.textContent = "Correlation Analysis";
+          showToast("Network error. Please try again.", "error");
+        });
+    }
+
+    // Update heat stress panel
+    function updateHeatStressPanel(temp, heatStress) {
+      document.getElementById("heatStressPanel").innerHTML = `
+        <div class="heat-stress-card">
+          <div class="heat-stress-level" style="color: ${heatStress.color}">${heatStress.level}</div>
+          <div class="heat-stress-temp">${temp}°C</div>
+          <div class="heat-stress-desc">${heatStress.risk}</div>
+        </div>
+      `;
+    }
+
+    // Update recommendations panel
+    function updateRecommendations(recommendations) {
+      if (!recommendations || !recommendations.recommendations || recommendations.recommendations.length === 0) {
+        document.getElementById("recommendationsPanel").innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">💡</div>
+            No specific recommendations for this area
+          </div>
+        `;
+        return;
+      }
+
+      const priorityClass = `priority-${recommendations.priority.toLowerCase()}`;
+      
+      document.getElementById("recommendationsPanel").innerHTML = `
+        <div class="priority-badge ${priorityClass}">${recommendations.priority} Priority</div>
+        ${recommendations.recommendations.map(rec => `
+          <div class="recommendation-item ${recommendations.priority.toLowerCase() === 'critical' ? 'critical' : recommendations.priority.toLowerCase() === 'high' ? 'high' : ''}">
+            <div class="recommendation-icon">${rec.icon}</div>
+            <div class="recommendation-content">
+              <h4>${rec.title}</h4>
+              <p>${rec.desc}</p>
+            </div>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    // Clear map
+    function clearMap() {
+      if (marker) {
+        map.removeLayer(marker);
+        marker = null;
+      }
+      if (heatLayer) {
+        map.removeLayer(heatLayer);
+        heatLayer = null;
+      }
+      hotspotMarkers.forEach(m => map.removeLayer(m));
+      hotspotMarkers = [];
+      ndviMarkers.forEach(m => map.removeLayer(m));
+      ndviMarkers = [];
+      
+      lat = null;
+      lon = null;
+      currentData = null;
+
+      document.getElementById("coords").textContent = "Click on map to select";
+      document.getElementById("coords").classList.add("empty");
+      document.getElementById("heatStressPanel").innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">🌡️</div>
+          Analyze area to assess heat stress
+        </div>
+      `;
+      document.getElementById("recommendationsPanel").innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">💡</div>
+          Recommendations will appear after analysis
+        </div>
+      `;
+      document.getElementById("statsPanel").innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📈</div>
+          Run analysis to see statistics
+        </div>
+      `;
+      document.getElementById("hotspotCard").style.display = "none";
+      document.getElementById("vegCard").style.display = "none";
+      document.getElementById("corrCard").style.display = "none";
+
+      map.setView([20, 78], 5);
+      showToast("Map cleared", "info");
+    }
+
+    function showPanel(panel) {
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+  </script>
+
+</body>
+</html>
